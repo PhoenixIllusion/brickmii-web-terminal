@@ -1,0 +1,66 @@
+{
+  "name": "brickmii.web-terminal",
+  "displayName": "web-terminal",
+  "description": "A terminal for VSCode Web",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:brickmii.web-terminal.helloWorld"
+  ],
+  "browser": "./dist/terminal/extension.js",
+  "contributes": {
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "brickmii.web-terminal.createTerminal"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "brickmii.web-terminal.createTerminal",
+        "title": "BrickMii Web Terminal: Create Terminal"
+      }
+    ]
+  },
+  "scripts": {
+    "pretest": "yarn run compile-web",
+    "vscode:prepublish": "yarn run package-web",
+    "compile-web": "webpack",
+    "watch-web": "webpack --watch",
+    "package-web": "webpack --mode production --devtool hidden-source-map",
+    "lint": "eslint src --ext ts",
+    "run-in-browser": "vscode-test-web --browserType=chromium --open-devtools=true --extensionDevelopmentPath=. ."
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.1",
+    "@types/vscode": "^1.74.0",
+    "@types/webpack-env": "^1.18.0",
+    "@typescript-eslint/eslint-plugin": "^5.45.0",
+    "@typescript-eslint/parser": "^5.45.0",
+    "@vscode/test-web": "^0.0.33",
+    "assert": "^2.0.0",
+    "eslint": "^8.28.0",
+    "mocha": "^10.1.0",
+    "process": "^0.11.10",
+    "ts-loader": "^9.4.1",
+    "typescript": "^4.9.3",
+    "webpack": "^5.75.0",
+    "webpack-cli": "^5.0.0"
+  },
+  "dependencies": {
+    "@types/minimist": "1.2.2",
+    "@types/shell-quote": "1.7.1",
+    "ansi-styles": "6.2.1",
+    "memfs": "3.4.12",
+    "minimist": "1.2.7",
+    "path-browserify": "1.0.1",
+    "shell-quote": "1.6.1",
+    "string-to-argv": "1.0.0"
+  }
+}
