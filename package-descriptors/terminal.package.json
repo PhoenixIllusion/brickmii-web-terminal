@@ -1,0 +1,26 @@
+{
+  "name": "brickmii.web-terminal",
+  "displayName": "web-terminal",
+  "description": "A terminal for VSCode Web",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onTerminalProfile:brickmii.terminal-profile"
+  ],
+  "browser": "./extension.js",
+  "contributes": {
+    "terminal": {
+      "profiles": [
+        {
+          "title": "Profile from Web Terminal",
+          "id": "brickmii.terminal-profile"
+        }
+      ]
+    }
+  }
+}

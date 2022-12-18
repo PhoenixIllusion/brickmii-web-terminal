@@ -9,25 +9,6 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [
-    "onCommand:brickmii.web-terminal.helloWorld"
-  ],
-  "browser": "./dist/terminal/extension.js",
-  "contributes": {
-    "menus": {
-      "explorer/context": [
-        {
-          "command": "brickmii.web-terminal.createTerminal"
-        }
-      ]
-    },
-    "commands": [
-      {
-        "command": "brickmii.web-terminal.createTerminal",
-        "title": "BrickMii Web Terminal: Create Terminal"
-      }
-    ]
-  },
   "scripts": {
     "pretest": "yarn run compile-web",
     "vscode:prepublish": "yarn run package-web",
@@ -35,32 +16,35 @@
     "watch-web": "webpack --watch",
     "package-web": "webpack --mode production --devtool hidden-source-map",
     "lint": "eslint src --ext ts",
-    "run-in-browser": "vscode-test-web --browserType=chromium --open-devtools=true --extensionDevelopmentPath=. ."
+    "run-in-browser": "vscode-test-web --browserType=chromium --open-devtools=true --extensionDevelopmentPath=dist ."
   },
   "devDependencies": {
+    "@types/minimist": "1.2.2",
     "@types/mocha": "^10.0.1",
+    "@types/shell-quote": "1.7.1",
     "@types/vscode": "^1.74.0",
     "@types/webpack-env": "^1.18.0",
+    "@types/xterm": "3.0.0",
     "@typescript-eslint/eslint-plugin": "^5.45.0",
     "@typescript-eslint/parser": "^5.45.0",
     "@vscode/test-web": "^0.0.33",
+    "ansi-styles": "6.2.1",
     "assert": "^2.0.0",
+    "buffer": "6.0.3",
+    "copy-webpack-plugin": "11.0.0",
+    "crypto-browserify": "3.12.0",
     "eslint": "^8.28.0",
+    "memfs": "3.4.12",
+    "minimist": "1.2.7",
     "mocha": "^10.1.0",
-    "process": "^0.11.10",
+    "os-browserify": "0.3.0",
+    "path-browserify": "1.0.1",
+    "process": "0.11.10",
+    "shell-quote": "1.6.1",
+    "string-to-argv": "1.0.0",
     "ts-loader": "^9.4.1",
     "typescript": "^4.9.3",
     "webpack": "^5.75.0",
     "webpack-cli": "^5.0.0"
-  },
-  "dependencies": {
-    "@types/minimist": "1.2.2",
-    "@types/shell-quote": "1.7.1",
-    "ansi-styles": "6.2.1",
-    "memfs": "3.4.12",
-    "minimist": "1.2.7",
-    "path-browserify": "1.0.1",
-    "shell-quote": "1.6.1",
-    "string-to-argv": "1.0.0"
   }
 }

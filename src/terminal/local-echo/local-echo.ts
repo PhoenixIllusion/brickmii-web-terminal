@@ -1,5 +1,10 @@
 'use strict';
 
+import { OnTerminalDataEvent, OnTerminalResizeEvent, Terminal, Disposable, TerminalDimensions } from "../term";
+/*
+* Modified from https://github.com/wavesoft/local-echo
+*/
+
 import { HistoryController } from "./HistoryController";
 import {
   closestLeftBoundary,
@@ -32,29 +37,6 @@ export interface LocalEchoOptions {
   historySize?: number;
   maxAutocompleteEntries?: number;
 }
-interface TerminalDimensions {
-  cols: number,
-  rows: number
-}
-type OnDataEvent = (message: string)=>void;
-type OnResizeEvent = (dimensions: TerminalDimensions)=>void;
-
-interface Disposable {
-  dispose: () => void;
-}
-
-interface Terminal extends TerminalDimensions{
-  on?(event: 'data', callback: OnDataEvent): void;
-  on?(event: 'resize', callback: OnResizeEvent): void;
-  off?(event: 'data', callback: OnDataEvent): void;
-  off?(event: 'resize', callback: OnResizeEvent): void;
-  write: (message: string)=> void;
-  onData(callback: OnDataEvent):Disposable;
-  onResize(callback: OnResizeEvent):Disposable;
-
-  loadAddon?(addon: LocalEchoController): void;
-}
-
 
 export class LocalEchoController {
   private _autocompleteHandlers: AutoCompleteEntry[];
@@ -70,8 +52,8 @@ export class LocalEchoController {
   maxAutocompleteEntries: number;
 
   term: Terminal|null;
-  private _handleTermData: OnDataEvent;
-  private _handleTermResize: OnResizeEvent;
+  private _handleTermData: OnTerminalDataEvent;
+  private _handleTermResize: OnTerminalResizeEvent;
 
   constructor(term: Terminal|null = null, options: LocalEchoOptions = {}) {
     this.term = term;
@@ -137,7 +119,7 @@ export class LocalEchoController {
       if (this.term.on) {
         this.term.on("data", this._handleTermData);
         this.term.on("resize", this._handleTermResize);
-      } else {
+      } else if(this.term.onData && this.term.onResize) {
         this._disposables.push(this.term.onData(this._handleTermData));
         this._disposables.push(this.term.onResize(this._handleTermResize));
       }

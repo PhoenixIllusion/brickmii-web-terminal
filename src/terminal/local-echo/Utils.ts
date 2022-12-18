@@ -1,5 +1,5 @@
 import { parse } from 'shell-quote';
-import { AutoCompleteEntry } from './local-echo-vs';
+import { AutoCompleteEntry } from './local-echo';
 /**
  * Detects all the word boundaries on the given input
  */

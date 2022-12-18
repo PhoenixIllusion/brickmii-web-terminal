@@ -1,17 +1,17 @@
 'use strict';
 
-import * as vscode from 'vscode';
 /*
   Modified from https://github.com/RangerMauve/xterm-js-shell
 */
 import style from 'ansi-styles';
 import stringToArgv from 'string-to-argv';
 import minimist from 'minimist';
-import { LocalEchoController_VS, LocalEchoOptions } from '../local-echo-vs/local-echo-vs'
+import { type AutoComplete, LocalEchoController } from '../local-echo/local-echo'
+import { Terminal } from '../term';
 
-type AutoComplete = (index: number, args: string[])=>any;
+export type CommandLineFlags = {[key: string]: string};
 
-type Command = (shell: SubShell, args: any, flags?: any) => Promise<void>;
+export type Command = (shell: SubShell, args: any, flags?: CommandLineFlags) => Promise<void>;
 
 const ERROR_NOT_FOUND = (command: string) => `Command Not Found: ${command}`
 const ERROR_ALREADY_REGISTERED = (command: string) => `Command Already Registered: ${command}`
@@ -22,21 +22,25 @@ interface CommandItem {
   autocomplete?: AutoComplete
 }
 
-export default class XtermJSShell_VS {
+export default class XtermJSShell {
+  term: Terminal;
+  echo: LocalEchoController;
   prompt:()=>Promise<string>;
   commands:Map<string,CommandItem>;
-  env: Object;
+  env: {[key: string]:any};
   attached:boolean;
 
   rows: number = 0;
   cols: number = 0;
 
-  constructor (private echo: LocalEchoController_VS) {
+  constructor (term: Terminal) {
     this.prompt = async () => '$ '
-    this.commands = new Map()
+    this.commands = new Map();
+    this.echo = new LocalEchoController(term);
+    this.term = term;
     this.env = {};
 
-    this.attached = true
+    this.attached = true;
 
     this.echo.addAutocompleteHandler(this.autoCompleteCommands.bind(this))
   }
@@ -122,7 +126,7 @@ export default class XtermJSShell_VS {
    * @param  {Command}      fn      Async function that takes a shell / args
    * @return {XtermJSShell}          Returns self for chaining
    */
-  command (command: string, fn?: Command, autocomplete?: AutoComplete): XtermJSShell_VS {
+  command (command: string, fn?: Command, autocomplete?: AutoComplete): XtermJSShell {
     if (this.commands.has(command)) {
       console.warn(ERROR_ALREADY_REGISTERED(command))
     }
@@ -133,6 +137,8 @@ export default class XtermJSShell_VS {
 
     return this
   }
+
+  // Internal command for auto completion of command names
   autoCompleteCommands (index: number, tokens: string[]) {
     const command = tokens[0]
     if (index === 0) {
@@ -159,7 +165,7 @@ export default class XtermJSShell_VS {
   }
 
   print (message: string): void {
-    return this.echo.term.write(message)
+    return this.echo.term?.write(message)
   }
 
   printLine (message: string): void {
@@ -170,9 +176,10 @@ export default class XtermJSShell_VS {
   }
 }
 export class SubShell {
-  shell: XtermJSShell_VS;
+  shell: XtermJSShell;
   destroyed: boolean;
-  constructor (shell: XtermJSShell_VS) {
+
+  constructor (shell: XtermJSShell) {
     this.shell = shell
     this.destroyed = false
   }

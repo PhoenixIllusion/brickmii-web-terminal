@@ -11,6 +11,7 @@
 
 const path = require('path');
 const webpack = require('webpack');
+const CopyPlugin = require('copy-webpack-plugin');
 
 /** @type WebpackConfig */
 const webExtensionConfig = {
@@ -38,7 +39,12 @@ const webExtensionConfig = {
 			// see https://webpack.js.org/configuration/resolve/#resolvefallback
 			// for the list of Node.js core module polyfills.
 			'assert': require.resolve('assert'),
-			'path': require.resolve('path-browserify')
+			'path': require.resolve('path-browserify'),
+      'crypto': require.resolve('crypto-browserify'),
+      'buffer': require.resolve('buffer'),
+      'os': require.resolve('os-browserify/browser'),
+      'process': require.resolve('process/browser'),
+			'fs': require.resolve('memfs')
 		}
 	},
 	module: {
@@ -57,6 +63,25 @@ const webExtensionConfig = {
 		new webpack.ProvidePlugin({
 			process: 'process/browser', // provide a shim for the global `process` variable
 		}),
+		new CopyPlugin({
+			patterns: [
+				{
+					from: 'package-descriptors/terminal.package.json',
+					to: 'terminal/package.json',
+          force: true,
+				},
+				{
+					from: 'package-descriptors/typescript.package.json',
+					to: 'typescript/package.json',
+          force: true,
+				},
+				{
+					from: 'package-descriptors/assemblyscript.package.json',
+					to: 'assemblyscript/package.json',
+          force: true,
+				}
+			]
+		})
 	],
 	externals: {
 		'vscode': 'commonjs vscode', // ignored because it doesn't exist
