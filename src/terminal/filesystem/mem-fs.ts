@@ -1,10 +1,11 @@
 import * as vscode from 'vscode'
 import { fastGlob } from './fast-glob'
-import { vol } from 'memfs'
+import { fs as FS, vol } from 'memfs'
 import { Buffer } from 'buffer'
 
 export interface MemFsLoader {
-  loadFromGlob: (pattern: string|string[]) => Promise<void>
+  loadFromGlob: (pattern: string|string[]) => Promise<void>,
+  fs: typeof FS
 }
 
 export const createMemFsLoader = (fromDir: vscode.WorkspaceFolder): MemFsLoader => {
@@ -16,6 +17,7 @@ export const createMemFsLoader = (fromDir: vscode.WorkspaceFolder): MemFsLoader 
         const data = await vscode.workspace.fs.readFile(glob.uriFromPath(path))
         vol.fromJSON({[path]: Buffer.from(data).toString('utf8')});
       }));
-    }
+    },
+    fs: FS
   }
 }

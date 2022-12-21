@@ -1,10 +1,11 @@
-import ts, { BuildOptions } from "typescript";
+import * as ts from 'typescript';
 import XtermJSShell from "../../terminal/xterm-shell";
 import _path from 'path'
+import type { fs as FS } from 'memfs';
 import { ExtensionTypescriptSystem } from "./src/sys";
 
-export const createSystem = (term: XtermJSShell, args: string[]): ts.System => {
-  const sys = ExtensionTypescriptSystem(term);
+export const createSystem = (term: XtermJSShell, args: string[], fs: typeof FS): ts.System => {
+  const sys = ExtensionTypescriptSystem(term, fs);
   sys.args = args;
   return sys
 }
@@ -61,6 +62,6 @@ export const compileTsProject = (sys: ts.System, parsedConfig: ts.ParsedCommandL
   //const { fileNames, options, projectReferences } = parsedConfig;
   const reporters = getReporters(sys);
   const solutionBuilderHost = ts.createSolutionBuilderHost(sys, ts.createEmitAndSemanticDiagnosticsBuilderProgram, reporters.reportDiagnostic);
-  const solution = ts.createSolutionBuilder(solutionBuilderHost, [sys.getCurrentDirectory()], {} as BuildOptions);
+  const solution = ts.createSolutionBuilder(solutionBuilderHost, [sys.getCurrentDirectory()], {} as ts.BuildOptions);
   solution.build();debugger;
 }

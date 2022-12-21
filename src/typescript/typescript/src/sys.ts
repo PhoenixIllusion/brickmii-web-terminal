@@ -1,8 +1,8 @@
-import ts from "typescript";
-import XtermJSShell from "../../../terminal/xterm-shell";
-import { fs } from 'memfs'
+import * as ts from 'typescript';
+import type XtermJSShell from "../../../terminal/xterm-shell";
+import { fs as FS } from 'memfs'
 import _path from 'path';
-import Dirent from "memfs/lib/Dirent";
+import type Dirent from "memfs/lib/Dirent";
 import SHA from 'sha.js'
 import { Buffer } from 'buffer'
 
@@ -16,7 +16,7 @@ interface PrivateSystemVals {
 
 }
 
-export const ExtensionTypescriptSystem = (term: XtermJSShell): ts.System & PrivateSystemVals => {
+export const ExtensionTypescriptSystem = (term: XtermJSShell, fs: typeof FS): ts.System & PrivateSystemVals => {
     const sys: ts.System & PrivateSystemVals = {
         args: process.argv.slice(2),
         newLine,
@@ -70,21 +70,21 @@ export const ExtensionTypescriptSystem = (term: XtermJSShell): ts.System & Priva
         base64encode: input => Buffer.from(input).toString("base64")
     }
     return sys;
-}
-interface FileSystemEntries {
-  readonly files: readonly string[];
-  readonly directories: readonly string[];
-}
-function getFileSystemEntries(path: string): FileSystemEntries {
-    const files: string[] = []
-    const directories: string[] = []
-    const entries = fs.readdirSync(path, {withFileTypes: true}) as Dirent[];
-    for (const entry of entries) {
-        if (entry.isFile()) {
-            files.push(entry.name as string)
-        } else if (entry.isDirectory()) {
-            directories.push(entry.name as string)
-        }
+    interface FileSystemEntries {
+      readonly files: readonly string[];
+      readonly directories: readonly string[];
     }
-    return {files, directories}
+    function getFileSystemEntries(path: string): FileSystemEntries {
+        const files: string[] = []
+        const directories: string[] = []
+        const entries = fs.readdirSync(path, {withFileTypes: true}) as Dirent[];
+        for (const entry of entries) {
+            if (entry.isFile()) {
+                files.push(entry.name as string)
+            } else if (entry.isDirectory()) {
+                directories.push(entry.name as string)
+            }
+        }
+        return {files, directories}
+    }
 }

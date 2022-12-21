@@ -1,0 +1,21 @@
+export {
+  System,
+  matchFiles,
+  ParseConfigFileHost,
+  ParsedCommandLine,
+  DiagnosticReporter,
+  CompilerOptions,
+  WatchOptions,
+  Map, ExtendedConfigCacheEntry,
+  getParsedCommandLineOfConfigFile,
+  FormatDiagnosticsHost,
+  Diagnostic,
+  flattenDiagnosticMessageText,
+  ExitStatus,
+  parseCommandLine,
+  findConfigFile,
+  createSolutionBuilderHost,
+  createEmitAndSemanticDiagnosticsBuilderProgram,
+  BuildOptions,
+  createSolutionBuilder
+} from "typescript";

@@ -11,20 +11,18 @@
 
 const path = require('path');
 const webpack = require('webpack');
-const CopyPlugin = require('copy-webpack-plugin');
+const NpmDtsPlugin = require('npm-dts-webpack-plugin')
 
 /** @type WebpackConfig */
 const webExtensionConfig = {
 	mode: 'none', // this leaves the source code as close as possible to the original (when packaging we set this to 'production')
 	target: 'webworker', // extensions run in a webworker context
 	entry: {
-		'terminal/extension': './src/terminal/extension.ts',
-		'typescript/extension': './src/typescript/extension.ts',
-		'assemblyscript/extension': './src/assemblyscript/extension.ts'
+		'typescript': './lib-src/typescript/index.ts',
 	},
 	output: {
-		filename: '[name].js',
-		path: path.join(__dirname, './dist/'),
+		filename: '[name].min.js',
+		path: path.join(__dirname, './dist/lib'),
 		libraryTarget: 'commonjs',
 		devtoolModuleFilenameTemplate: '../../[resource-path]'
 	},
@@ -33,7 +31,6 @@ const webExtensionConfig = {
 		extensions: ['.ts', '.js'], // support ts-files and js-files
 		alias: {
 			// provides alternate implementation for node module and source files
-			"typescript": require.resolve('./dist/lib/typescript.min.js')
 		},
 		fallback: {
 			// Webpack 5 no longer polyfills Node.js core modules automatically.
@@ -47,12 +44,10 @@ const webExtensionConfig = {
       'process': require.resolve('process/browser'),
 			'fs': require.resolve('memfs'),
 			"perf_hooks": require.resolve('universal-perf-hooks'),
-      'stream': require.resolve('stream-browserify'),
-			'url': require.resolve('browserify-url')
+      stream: require.resolve('stream-browserify'),
 		}
 	},
 	module: {
-    noParse: /\.min\.js/,
 		rules: [
 			{
 			test: /\.ts$/,
@@ -60,7 +55,7 @@ const webExtensionConfig = {
 			use: [{
 				loader: 'ts-loader',
 				options: {
-					configFile: 'tsconfig.json'
+					configFile: 'tsconfig.libs.json'
 				}
 			}]
 		}]
@@ -72,25 +67,6 @@ const webExtensionConfig = {
 		new webpack.ProvidePlugin({
 			process: 'process/browser', // provide a shim for the global `process` variable
 		}),
-		new CopyPlugin({
-			patterns: [
-				{
-					from: 'package-descriptors/terminal.package.json',
-					to: 'terminal/package.json',
-          force: true,
-				},
-				{
-					from: 'package-descriptors/typescript.package.json',
-					to: 'typescript/package.json',
-          force: true,
-				},
-				{
-					from: 'package-descriptors/assemblyscript.package.json',
-					to: 'assemblyscript/package.json',
-          force: true,
-				}
-			]
-		})
 	],
 	externals: {
 		'vscode': 'commonjs vscode', // ignored because it doesn't exist
