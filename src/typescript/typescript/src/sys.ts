@@ -7,7 +7,7 @@ import SHA from 'sha.js'
 import { Buffer } from 'buffer'
 
 const useCaseSensitiveFileNames = true;
-const newLine = "\n"
+const newLine = "\r\n"
 
 interface PrivateSystemVals {
   getEnvironmentVariable(name:string): string,
@@ -32,14 +32,14 @@ export const ExtensionTypescriptSystem = (term: XtermJSShell): ts.System & Priva
         fileExists: (path) => fs.existsSync(path) && fs.statSync(path).isFile(),
         directoryExists: (path) => fs.existsSync(path) && fs.statSync(path).isDirectory(),
         createDirectory: (directoryName: string) => fs.mkdirSync(directoryName),
-        getExecutingFilePath: () => term.env['PWD'],
+        getExecutingFilePath: () => term.env['PWD']+'tsc',
         getCurrentDirectory: () => term.env['CWD'],
         getDirectories: (path) => getFileSystemEntries(path).directories.slice(),
         getEnvironmentVariable: (name: string) => term.env[name],
         readDirectory: (path: string, extensions?: readonly string[], excludes?: readonly string[], includes?: readonly string[], depth?: number) => {
             return ts.matchFiles(path, extensions, excludes, includes, useCaseSensitiveFileNames, sys.getCurrentDirectory(), depth, getFileSystemEntries, fs.realpathSync as (path: string)=>string);
         },
-        getModifiedTime: (path) => fs.statSync(path).mtime,
+        getModifiedTime: (path) => {try {return fs.statSync(path).mtime}catch{}},
         setModifiedTime: (path, time) => fs.utimesSync(path, time, time),
         deleteFile: (path) => fs.rmSync(path),
         createHash: (data: string) => new SHA.sha256().update(data).digest('base64'),

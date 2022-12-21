@@ -48,10 +48,12 @@
     "webpack-cli": "^5.0.0"
   },
   "dependencies": {
+    "@types/lz-string": "1.3.34",
     "@types/sha.js": "2.4.0",
     "@typescript/vfs": "1.4.0",
     "fast-glob": "3.2.12",
     "lz-string": "1.4.4",
+    "setimmediate": "1.0.5",
     "sha256": "0.2.0",
     "stream-browserify": "3.0.0",
     "universal-perf-hooks": "1.0.1",

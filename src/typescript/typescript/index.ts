@@ -1,4 +1,4 @@
-import ts from "typescript";
+import ts, { BuildOptions } from "typescript";
 import XtermJSShell from "../../terminal/xterm-shell";
 import _path from 'path'
 import { ExtensionTypescriptSystem } from "./src/sys";
@@ -27,7 +27,7 @@ const getReporters = (sys: ts.System) => {
     getCurrentDirectory: sys.getCurrentDirectory,
     getNewLine: () => sys.newLine
   };
-  const printError = (... args: {toString: () => string}[]) => sys.write(args.map(x => x.toString()).join('')+'\n');
+  const printError = (... args: {toString: () => string}[]) => sys.write(args.map(x => x.toString()).join(''));
   function reportDiagnostic(diagnostic: ts.Diagnostic) {
     printError("Error", diagnostic.code, ":", ts.flattenDiagnosticMessageText( diagnostic.messageText, formatHost.getNewLine()));
   }
@@ -58,23 +58,9 @@ export const parseTsConfig = (sys: ts.System) => {
   return parsedConfig;
 }
 export const compileTsProject = (sys: ts.System, parsedConfig: ts.ParsedCommandLine) => {
-  const { fileNames, options, projectReferences } = parsedConfig;
+  //const { fileNames, options, projectReferences } = parsedConfig;
   const reporters = getReporters(sys);
-  const compilerHost = ts.createIncrementalCompilerHost(options, sys);
-  debugger;
-  const programOptions: ts.IncrementalProgramOptions<ts.EmitAndSemanticDiagnosticsBuilderProgram> = {
-    rootNames: fileNames,
-    options, projectReferences,
-    host: compilerHost,
-    configFileParsingDiagnostics: getConfigFileParsingDiagnostics(parsedConfig)
-  }
-  const program = ts.createIncrementalProgram(programOptions);
-  debugger;
-  program.emit();
-  debugger;
-}
-function getConfigFileParsingDiagnostics(configFileParseResult: ts.ParsedCommandLine): readonly ts.Diagnostic[] {
-  return configFileParseResult.options.configFile ?
-      [...(configFileParseResult.options.configFile as any).parseDiagnostics, ...configFileParseResult.errors] :
-      configFileParseResult.errors;
+  const solutionBuilderHost = ts.createSolutionBuilderHost(sys, ts.createEmitAndSemanticDiagnosticsBuilderProgram, reporters.reportDiagnostic);
+  const solution = ts.createSolutionBuilder(solutionBuilderHost, [sys.getCurrentDirectory()], {} as BuildOptions);
+  solution.build();debugger;
 }

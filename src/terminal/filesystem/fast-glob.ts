@@ -1,3 +1,6 @@
+import process from 'process';
+process.versions['node'] = '10.10';
+import 'setimmediate';
 import FG from 'fast-glob';
 import {posix} from 'path';
 import * as vscode from 'vscode';
@@ -141,12 +144,13 @@ export const fastGlob = (workspace: vscode.WorkspaceFolder) => {
   const fs: Partial<FG.FileSystemAdapter> = VsCodeAsyncFileSystem(workspace);
   return {
     fasGlob: (source: string|string[], options:FG.Options = {}) => {
-      FG(source, {
+      return FG(source, {
         ... options,
         fs
       })
     },
     fs,
+    uriFromPath: (path: string) => workspace.uri.with({path: posix.normalize(posix.join(workspace.uri.path, path))}),
     workspace
   }
 }

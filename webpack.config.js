@@ -96,6 +96,13 @@ const webExtensionConfig = {
 	externals: {
 		'vscode': 'commonjs vscode', // ignored because it doesn't exist
 	},
+	cache: {
+		type: 'filesystem'
+	},
+	optimization: {
+		removeAvailableModules: false,
+		removeEmptyChunks: false
+	},
 	performance: {
 		hints: false
 	},

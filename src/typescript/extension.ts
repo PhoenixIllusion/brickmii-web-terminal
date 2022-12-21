@@ -5,7 +5,9 @@ import { ExtensionShellCommands, ExtensionShellConstructor, ExtensionShellInterf
 import XtermJSShell, { SubShell } from '../terminal/xterm-shell';
 import { compileTsProject, createSystem, parseTsConfig } from './typescript/index';
 
-import { fs, vol } from 'memfs';
+import { vol } from 'memfs';
+import ts from 'typescript';
+import { createMemFsLoader, MemFsLoader } from '../terminal/filesystem/mem-fs';
 
 export async function activate(context: vscode.ExtensionContext): Promise<ExtensionShellConstructor> {
   class TypescriptExtension implements ExtensionShellInterface {
@@ -17,42 +19,34 @@ export async function activate(context: vscode.ExtensionContext): Promise<Extens
         'tsc': {
           fn: async (shell: SubShell, args: string[], flags: any) => {
 
-            vol.fromNestedJSON({ '/': {
-              'tsconfig.json': `
-{
-  "compilerOptions": {
-    "module": "commonjs",
-    "esModuleInterop": true,
-    "target": "ES2020",
-    "outDir": "dist",
-    "lib": [
-      "ES2020", "WebWorker"
-    ],
-    "incremental": true,
-    "sourceMap": true,
-    "rootDir": "src",
-    "strict": true   /* enable all strict type-checking options */
-    /* Additional Checks */
-    // "noImplicitReturns": true, /* Report error when not all code paths in function return a value. */
-    // "noFallthroughCasesInSwitch": true, /* Report errors for fallthrough cases in switch statement. */
-    // "noUnusedParameters": true,  /* Report errors on unused parameters. */
-  }
-}`,
-  'src': {
-    'index.ts': `console.log('hello);`
-  }
-          }});
-            shell.shell.env['PWD'] = shell.shell.env['CWD'];
-            const sys = createSystem(shell.shell, args);
-            const parsedConfig = parseTsConfig(sys);
+            const memFs = getMemFs();
 
-            shell.print("Compiling...");
-            compileTsProject(sys, parsedConfig);
-            shell.print("Done");
+            if(memFs) {
+              await memFs.loadFromGlob('/tsconfig.json');
+              vol.fromNestedJSON({ '/': {    'src': {'index.ts': `import fs from 'fs'; console.log('hello');fs.write(1);` }}});
+              shell.shell.env['PWD'] = shell.shell.env['CWD']+'node_modules/typescript/lib/';
+              const sys = createSystem(shell.shell, args);
+              const parsedConfig = parseTsConfig(sys);
+              await addCompilerOptionLibs(parsedConfig.options, memFs);
+              shell.printLine("Compiling...");
+              compileTsProject(sys, parsedConfig);
+              shell.printLine("Done");
+            }
           }
         }
       }
     }
   }
   return TypescriptExtension;
+}
+const getMemFs = () => {
+  const workspaces = vscode.workspace.workspaceFolders
+  if (!workspaces || !workspaces[0]) {
+    return;
+  }
+  const workspace = workspaces[0];
+  return createMemFsLoader(workspace);
+}
+const addCompilerOptionLibs = async (options: ts.CompilerOptions, memFsLoader: MemFsLoader): Promise<void> => {
+  return memFsLoader.loadFromGlob(['/node_modules/typescript/lib/*.d.ts','node_modules/@types/**/*.d.ts'])
 }
