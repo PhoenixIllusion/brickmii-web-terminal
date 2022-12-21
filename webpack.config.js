@@ -44,11 +44,21 @@ const webExtensionConfig = {
       'buffer': require.resolve('buffer'),
       'os': require.resolve('os-browserify/browser'),
       'process': require.resolve('process/browser'),
-			'fs': require.resolve('memfs')
+			'fs': require.resolve('memfs'),
+			"perf_hooks": require.resolve('universal-perf-hooks'),
+      stream: require.resolve('stream-browserify'),
 		}
 	},
 	module: {
-		rules: [{
+		rules: [
+      {
+				test: /\.worker\.ts$/,
+				loader: 'worker-loader',
+				options: {
+					esModule: false
+				}
+			},
+			{
 			test: /\.ts$/,
 			exclude: /node_modules/,
 			use: [{
@@ -89,7 +99,7 @@ const webExtensionConfig = {
 	performance: {
 		hints: false
 	},
-	devtool: 'nosources-source-map', // create a source map that points to the original source file
+	devtool: 'source-map', // create a source map that points to the original source file
 	infrastructureLogging: {
 		level: "log", // enables logging required for problem matchers
 	},

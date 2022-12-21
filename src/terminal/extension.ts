@@ -14,6 +14,6 @@ export function activate(context: vscode.ExtensionContext) {
 				pty: new WebExtensionShell().getPTY(),
 			}}
 		}}
-	)
+	);
 
 }

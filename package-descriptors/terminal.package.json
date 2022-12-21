@@ -1,5 +1,6 @@
 {
-  "name": "brickmii.web-terminal",
+  "name": "web-terminal",
+  "publisher": "brickmii",
   "displayName": "web-terminal",
   "description": "A terminal for VSCode Web",
   "version": "0.0.1",

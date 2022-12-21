@@ -1,5 +1,6 @@
 {
-  "name": "brickmii.web-terminal.typescript",
+  "name": "web-terminal.typescript",
+  "publisher": "brickmii",
   "displayName": "Web Terminal: Typescript",
   "description": "Typescript Support for Web Terminal",
   "version": "0.0.1",

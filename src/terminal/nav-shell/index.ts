@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import posix from 'path';
 import XtermJSShell, { SubShell } from '../xterm-shell';
+import { ExtensionShellCommands, ExtensionShellInterface } from '../web-extension-shell';
 
 const ReadDirectory = async (folder: vscode.Uri): Promise<{name:string, type: 'File'|'Directory'}[]> => {
   const response:{name:string, type: 'File'|'Directory'} [] = [];
@@ -15,7 +16,7 @@ const ReadDirectory = async (folder: vscode.Uri): Promise<{name:string, type: 'F
   return response;
 }
 
-export class NavShell {
+export class NavShell implements ExtensionShellInterface{
   CWD: string[] = [];
   get workspace(): vscode.WorkspaceFolder|null {
     const workspaces = vscode.workspace.workspaceFolders
@@ -25,11 +26,8 @@ export class NavShell {
     return workspaces[0];
   };
 
-  constructor(private term: XtermJSShell) {
+  constructor(protected term: XtermJSShell) {
     term.prompt = async () => (this.CWD.slice(-1)||"")+'$> ';
-    term.command('ls', this.ls.bind(this));
-    term.command('cd', this.cd.bind(this));
-    term.command('pwd', this.pwd.bind(this));
     this.updateENV();
   }
 
@@ -100,6 +98,13 @@ export class NavShell {
       }
     } else {
       shell.printLine("Not currently in workspace")
+    }
+  }
+  getCommands(): ExtensionShellCommands {
+    return {
+      'ls':  {fn: this.ls.bind(this)},
+      'cd':  {fn: this.cd.bind(this)},
+      'pwd': {fn: this.pwd.bind(this)}
     }
   }
 }
