@@ -1,10 +1,10 @@
 import * as ts from 'typescript';
-import XtermJSShell from "../../terminal/xterm-shell";
 import _path from 'path'
 import type { fs as FS } from 'memfs';
 import { ExtensionTypescriptSystem } from "./src/sys";
+import { VSShellEnv } from '../../terminal/ext';
 
-export const createSystem = (term: XtermJSShell, args: string[], fs: typeof FS): ts.System => {
+export const createSystem = (term: VSShellEnv, args: string[], fs: typeof FS): ts.System => {
   const sys = ExtensionTypescriptSystem(term, fs);
   sys.args = args;
   return sys

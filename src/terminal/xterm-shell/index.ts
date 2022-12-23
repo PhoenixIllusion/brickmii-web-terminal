@@ -5,35 +5,50 @@
 */
 import style from 'ansi-styles';
 import stringToArgv from 'string-to-argv';
-import minimist from 'minimist';
+import minimist, { ParsedArgs } from 'minimist';
 import { type AutoComplete, LocalEchoController } from '../local-echo/local-echo'
 import { Terminal } from '../term';
 
-export type CommandLineFlags = {[key: string]: string};
 
-export type Command = (shell: SubShell, args: any, flags?: CommandLineFlags) => Promise<void>;
+export interface ShellEnv {
+  setPrompt(prompt: ()=>Promise<string>): void;
+  getEnvironmentVariable<T>(name: string): T;
+  setEnvironmentVariable<T>(name: string, val: T): void;
+  getCurrentWorkingDirectory(): string;
+  printLine(message: string): void;
+  printList(list: string[]): void;
+  print(message: string): void;
+  onError(error: Error): void;
+  getDimensions(): {cols: number, rows: number}
+}
+
+export type Command<T extends ShellEnv> = (env: T, args: any, flags?: ParsedArgs) => Promise<void>;
 
 const ERROR_NOT_FOUND = (command: string) => `Command Not Found: ${command}`
 const ERROR_ALREADY_REGISTERED = (command: string) => `Command Already Registered: ${command}`
 
-interface CommandItem {
+interface CommandItem<T extends ShellEnv> {
   command: string;
-  fn?: Command;
+  fn?: Command<T>;
   autocomplete?: AutoComplete
 }
 
-export default class XtermJSShell {
+export interface ShellEnvFactory<T extends ShellEnv> {
+  createShellEnv(shell: ShellEnv):  T
+}
+
+export default class XtermJSShell<T extends ShellEnv> {
   term: Terminal;
   echo: LocalEchoController;
   prompt:()=>Promise<string>;
-  commands:Map<string,CommandItem>;
+  commands:Map<string,CommandItem<T>>;
   env: {[key: string]:any};
   attached:boolean;
 
   rows: number = 0;
   cols: number = 0;
 
-  constructor (term: Terminal) {
+  constructor (term: Terminal, private envGen: ShellEnvFactory<T>) {
     this.prompt = async () => '$ '
     this.commands = new Map();
     this.echo = new LocalEchoController(term);
@@ -111,12 +126,28 @@ export default class XtermJSShell {
   async run (command: string, args: string[], flags: any): Promise<void> {
     if (!this.commands.has(command)) throw new TypeError(ERROR_NOT_FOUND(command))
 
-    const { fn } = this.commands.get(command) as CommandItem;
+    const { fn } = this.commands.get(command) as CommandItem<T>;
     if(fn) {
       const shell = new SubShell(this);
-      const result = fn(shell, args, flags)
+      const result = fn(this.getShellEnv(), args, flags)
       await result;
       shell.destroy()
+    }
+  }
+  getShellEnv() {
+    return this.envGen.createShellEnv(this.getEnv());
+  }
+  private getEnv(): ShellEnv {
+    return {
+      setPrompt: newPrompt => this.prompt = newPrompt,
+      setEnvironmentVariable: <T>(key: string, val: T) => { this.env[key] = val },
+      getEnvironmentVariable: <T>(key: string) => this.env[key],
+      getCurrentWorkingDirectory: () => this.env['CWD'],
+      printLine: (message: string) => this.printLine(message),
+      print: (message: string) => this.print(message),
+      onError: (error: Error) => this.printLine(error.message),
+      getDimensions: () => ({ cols: this.cols, rows: this.rows}),
+      printList: (list: string[]) => this.printList(list)
     }
   }
 
@@ -126,7 +157,7 @@ export default class XtermJSShell {
    * @param  {Command}      fn      Async function that takes a shell / args
    * @return {XtermJSShell}          Returns self for chaining
    */
-  command (command: string, fn?: Command, autocomplete?: AutoComplete): XtermJSShell {
+  command (command: string, fn?: Command<T>, autocomplete?: AutoComplete): XtermJSShell<T> {
     if (this.commands.has(command)) {
       console.warn(ERROR_ALREADY_REGISTERED(command))
     }
@@ -139,12 +170,12 @@ export default class XtermJSShell {
   }
 
   // Internal command for auto completion of command names
-  autoCompleteCommands (index: number, tokens: string[]) {
+  async autoCompleteCommands (index: number, tokens: string[]) {
     const command = tokens[0]
     if (index === 0) {
-      return [...this.commands.keys()]
+      return [...this.commands.keys()].map(key => ({value: key}))
     } else if (this.commands.has(command)) {
-      const { autocomplete } = this.commands.get(command) as CommandItem;
+      const { autocomplete } = this.commands.get(command) as CommandItem<T>;
       if (!autocomplete) return []
       return autocomplete(index - 1, tokens.slice(1))
     } else {
@@ -175,11 +206,11 @@ export default class XtermJSShell {
     return this.echo.printWide(list)
   }
 }
-export class SubShell {
-  shell: XtermJSShell;
+export class SubShell<T extends ShellEnv> {
+  shell: XtermJSShell<T>;
   destroyed: boolean;
 
-  constructor (shell: XtermJSShell) {
+  constructor (shell: XtermJSShell<T>) {
     this.shell = shell
     this.destroyed = false
   }

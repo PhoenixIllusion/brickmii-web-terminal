@@ -1,10 +1,10 @@
 import * as ts from 'typescript';
-import type XtermJSShell from "../../../terminal/xterm-shell";
 import { fs as FS } from 'memfs'
 import _path from 'path';
 import type Dirent from "memfs/lib/Dirent";
 import SHA from 'sha.js'
 import { Buffer } from 'buffer'
+import { VSShellEnv } from '../../../terminal/ext';
 
 const useCaseSensitiveFileNames = true;
 const newLine = "\r\n"
@@ -16,13 +16,13 @@ interface PrivateSystemVals {
 
 }
 
-export const ExtensionTypescriptSystem = (term: XtermJSShell, fs: typeof FS): ts.System & PrivateSystemVals => {
+export const ExtensionTypescriptSystem = (term: VSShellEnv, fs: typeof FS): ts.System & PrivateSystemVals => {
     const sys: ts.System & PrivateSystemVals = {
         args: process.argv.slice(2),
         newLine,
         useCaseSensitiveFileNames,
         write: (s: string) => term.print(s),
-        getWidthOfTerminal: () => term.cols,
+        getWidthOfTerminal: () => term.getDimensions().cols,
         writeOutputIsTTY() {
             return process.stdout.isTTY;
         },
@@ -32,10 +32,10 @@ export const ExtensionTypescriptSystem = (term: XtermJSShell, fs: typeof FS): ts
         fileExists: (path) => fs.existsSync(path) && fs.statSync(path).isFile(),
         directoryExists: (path) => fs.existsSync(path) && fs.statSync(path).isDirectory(),
         createDirectory: (directoryName: string) => fs.mkdirSync(directoryName),
-        getExecutingFilePath: () => term.env['PWD']+'tsc',
-        getCurrentDirectory: () => term.env['CWD'],
+        getExecutingFilePath: () => term.getEnvironmentVariable('PWD')+'tsc',
+        getCurrentDirectory: () => term.getEnvironmentVariable('CWD'),
         getDirectories: (path) => getFileSystemEntries(path).directories.slice(),
-        getEnvironmentVariable: (name: string) => term.env[name],
+        getEnvironmentVariable: (name: string) => term.getEnvironmentVariable(name),
         readDirectory: (path: string, extensions?: readonly string[], excludes?: readonly string[], includes?: readonly string[], depth?: number) => {
             return ts.matchFiles(path, extensions, excludes, includes, useCaseSensitiveFileNames, sys.getCurrentDirectory(), depth, getFileSystemEntries, fs.realpathSync as (path: string)=>string);
         },

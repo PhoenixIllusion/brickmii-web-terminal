@@ -1,46 +1,37 @@
 'use strict';
 
 import * as vscode from 'vscode';
+import { ExtensionShellConstructor, VSShellEnv } from './ext';
+import { VSShell } from "./vs-shell";
 
-import { AutoComplete } from './local-echo/local-echo';
 import { NavShell } from './nav-shell';
 import { Terminal } from './term';
 import { PtyTerminal } from './term/pty-terminal';
-import XtermJSShell, { type Command, type SubShell } from './xterm-shell';
 
-const configureShell = (term: XtermJSShell) => {
+const configureShell = (term: VSShell) => {
 
-  term.command('help', async (shell) => {
+  term.command('help', async (shell: VSShellEnv) => {
     await shell.printLine(`
 Try running one of these commands:
-${shell.commands.map((command) => ` - ${command}`).join('\n')}
+${[... term.commands.entries()].map(([command, fn]) => ` - ${command}`).join('\n')}
 
 `)
   });
 }
 
-const addShellCommands = (shell: XtermJSShell, extensionC: ExtensionShellConstructor) => {
-  const extension = new extensionC(shell);
+const addShellCommands = (shell: VSShell, extensionC: ExtensionShellConstructor) => {
+  const extension = new extensionC(shell.getShellEnv());
   const commands = extension.getCommands();
   Object.entries(commands).forEach( ([command, cmd]) => {
     shell.command(command, cmd.fn, cmd.autoComplete);
   })
 }
 
-export interface ExtensionShellCommands {
-  [command:string]: {fn: Command, autoComplete?: AutoComplete}
-}
-export interface ExtensionShellConstructor {
-  new(shell: XtermJSShell): ExtensionShellInterface;
-}
-export interface ExtensionShellInterface {
-  getCommands():ExtensionShellCommands;
-}
 
 export class WebExtensionShell {
 
   private term: Terminal & vscode.Pseudoterminal;
-  private shell: XtermJSShell;
+  private shell: VSShell;
 
 
   constructor() {
@@ -49,7 +40,7 @@ export class WebExtensionShell {
     term.onOpen(this.onOpen.bind(this))
     term.onClose(this.onClose.bind(this))
 
-    this.shell = new XtermJSShell(term);
+    this.shell = new VSShell(term);
     addShellCommands(this.shell, NavShell);
     configureShell(this.shell);
   }
@@ -65,8 +56,8 @@ export class WebExtensionShell {
           if(!extension.isActive) {
             await extension.activate();
           }
-          const extensionClass = extension.exports as ExtensionShellConstructor;
-          if(extensionClass && extensionClass.prototype.constructor) {
+          const extensionClass: ExtensionShellConstructor = await extension.exports as ExtensionShellConstructor;
+          if(extensionClass && extensionClass.constructor) {
             addShellCommands(this.shell, extensionClass);
           }
         }

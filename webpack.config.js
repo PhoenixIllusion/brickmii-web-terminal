@@ -20,7 +20,8 @@ const webExtensionConfig = {
 	entry: {
 		'terminal/extension': './src/terminal/extension.ts',
 		'typescript/extension': './src/typescript/extension.ts',
-		'assemblyscript/extension': './src/assemblyscript/extension.ts'
+		'assemblyscript/extension': './src/assemblyscript/extension.ts',
+		'esbuild/extension': './src/esbuild/extension.ts'
 	},
 	output: {
 		filename: '[name].js',
@@ -75,19 +76,20 @@ const webExtensionConfig = {
 		new CopyPlugin({
 			patterns: [
 				{
-					from: 'package-descriptors/terminal.package.json',
-					to: 'terminal/package.json',
-          force: true,
+					from: 'package-descriptors/*.package.json',
+					to: ({ context, absoluteFilename })=>{
+					 const regex = new RegExp(/.+\/(.+?)\.package\.json/);
+					 return (absoluteFilename||'').replace(regex, '$1/package.json');
+					},
+          force: true
 				},
 				{
-					from: 'package-descriptors/typescript.package.json',
-					to: 'typescript/package.json',
-          force: true,
-				},
-				{
-					from: 'package-descriptors/assemblyscript.package.json',
-					to: 'assemblyscript/package.json',
-          force: true,
+					from: 'src/**/*.wasm',
+					to: ({ context, absoluteFilename })=>{
+					 const regex = new RegExp(/src\/(.+?)\/(.+?\.wasm)/);
+					 return (absoluteFilename||'').replace(regex, 'dist/$1/$2');
+					},
+          force: true
 				}
 			]
 		})

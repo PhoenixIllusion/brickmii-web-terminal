@@ -11,14 +11,13 @@
 
 const path = require('path');
 const webpack = require('webpack');
-const NpmDtsPlugin = require('npm-dts-webpack-plugin')
 
 /** @type WebpackConfig */
 const webExtensionConfig = {
 	mode: 'none', // this leaves the source code as close as possible to the original (when packaging we set this to 'production')
 	target: 'webworker', // extensions run in a webworker context
 	entry: {
-		'typescript': './lib-src/typescript/index.ts',
+		'typescript': './lib-src/typescript/index.ts'
 	},
 	output: {
 		filename: '[name].min.js',

@@ -1,5 +1,5 @@
 import { parse } from 'shell-quote';
-import { AutoCompleteEntry } from './local-echo';
+import { AutoCompleteEntry, AutoCompleteResponse } from './local-echo';
 /**
  * Detects all the word boundaries on the given input
  */
@@ -129,7 +129,7 @@ export function getLastToken(input: string) {
 /**
  * Returns the auto-complete candidates for the given input
  */
-export function collectAutocompleteCandidates(callbacks: AutoCompleteEntry[], input: string) {
+export async function collectAutocompleteCandidates(callbacks: AutoCompleteEntry[], input: string) {
   const tokens = parse(input) as string[];
   let index = tokens.length - 1;
   let expr = tokens[index] || "";
@@ -145,17 +145,16 @@ export function collectAutocompleteCandidates(callbacks: AutoCompleteEntry[], in
   }
 
   // Collect all auto-complete candidates from the callbacks
-  const all = callbacks.reduce((candidates: string[], { fn, args}) => {
+  const all:AutoCompleteResponse[] = (await Promise.all(callbacks.map(async ({fn, args}) => {
     try {
-      return candidates.concat(fn(index, tokens, ...args));
+      return (await fn(index, tokens, ...args))||[];
     } catch (e) {
-      console.error("Auto-complete error:", e);
-      return candidates;
+      return [];
     }
-  }, []);
+  }))).filter(val => val!=null).flat()
 
   // Filter only the ones starting with the expression
-  return all.filter(txt => txt.startsWith(expr));
+  return all.filter(txt => txt.value.startsWith(expr));
 }
 
 

@@ -1,10 +1,17 @@
 import process from 'process';
-process.versions['node'] = '10.10';
+if(!process.versions['node']){
+  process.versions['node'] = '10.10';
+}
 import 'setimmediate';
 import FG from 'fast-glob';
 import {posix} from 'path';
-import * as vscode from 'vscode';
 import type * as fs from 'fs';
+import { Buffer } from 'buffer';
+import { VSShellEnv } from '../ext';
+import * as like from './vs-like';
+
+import type { FileStat } from 'vscode'
+
 
 declare type Stats = fs.Stats;
 interface DirentPartial {
@@ -28,26 +35,26 @@ interface ReaddirAsynchronousMethod {
   (filepath: string, callback: StatAsyncCallbackStrings): void;
 }
 
-const StatToDirentPartial = (type: vscode.FileType) => {
+const StatToDirentPartial = (type: like.FileType) => {
   return {
     isBlockDevice: () => false,
     isCharacterDevice: () => false,
-    isDirectory: () => (type & vscode.FileType.Directory) > 0,
+    isDirectory: () => (type & like.FileType.Directory) > 0,
     isFIFO: () => false,
-    isFile: () => (type & vscode.FileType.File) > 0,
+    isFile: () => (type & like.FileType.File) > 0,
     isSocket: () => false,
-    isSymbolicLink: () => (type & vscode.FileType.SymbolicLink) > 0
+    isSymbolicLink: () => (type & like.FileType.SymbolicLink) > 0
   }
 }
 
-const StatToDirent = (name: string, type: vscode.FileType): Dirent => {
+const StatToDirent = (name: string, type: like.FileType): Dirent => {
   return {
     ... StatToDirentPartial(type),
     name
   }
 }
 
-const StatPermission = (vsStat: vscode.FileStat, dirent: DirentPartial): number => {
+const StatPermission = (vsStat: FileStat, dirent: DirentPartial): number => {
   const S_IFLNK = 0x0120000;//   symbolic link
   const S_IFREG = 0x0100000;//   regular file
   const S_IFDIR = 0x0040000;//   directory
@@ -62,14 +69,14 @@ const StatPermission = (vsStat: vscode.FileStat, dirent: DirentPartial): number 
   if(dirent.isSymbolicLink()){ 
     flag |= S_IFLNK
   }
-  if(vsStat.permissions && vsStat.permissions === vscode.FilePermission.Readonly) {
+  if(vsStat.permissions && vsStat.permissions === like.FilePermission.Readonly) {
     flag |= 0x4444;
   } else {
     flag |= 0x7777;
   }
   return flag;
 }
-const MapState = (vsStat: vscode.FileStat): Stats => {
+const MapState = (vsStat: FileStat): Stats => {
   const partial = StatToDirentPartial(vsStat.type);
   return {
     ... partial,
@@ -96,25 +103,46 @@ const MapState = (vsStat: vscode.FileStat): Stats => {
 const NullStat = () => MapState({ mtime: 0, ctime: 0, size: 0, type: 0})
 
 
-interface FastGlobFilesystem {
+export interface FastGlobFilesystem {
   lstat: StatAsynchronousMethod;
   stat: StatAsynchronousMethod;
   readdir: ReaddirAsynchronousMethod;
+  readFile: (path: string) => Promise<string|undefined>;
+  writeFile(path: string, contents: string|Uint8Array): Promise<void>;
+  createDirectory: (path: string) => Promise<void>;
 }
-const VsCodeAsyncFileSystem = (workspace: vscode.WorkspaceFolder): FastGlobFilesystem => {
+
+interface FastGlobEnvironmentBase {
+  fs: FastGlobFilesystem,
+  workspace: like.Uri,
+  uriFromPath: (path: string) => like.Uri
+}
+export interface FastGlobEnvironment extends FastGlobEnvironmentBase {
+  fastGlob: (source: string|string[], options?:FG.Options) => Promise<string[]>
+}
+
+const VsCodeAsyncFileSystem = (shell: VSShellEnv): FastGlobEnvironmentBase|null => {
+  const fs = shell.getFs();
+  const workspace = shell.getWorkspaceFolder();
+  if (!workspace) {
+    return null;
+  }
+  const uriFromPath = (path: string): like.Uri => {
+    return workspace.with({path: posix.normalize(posix.join(workspace.path, path))});
+  }
   const stat: StatAsynchronousMethod = async (path: string, callback: (error: ErrnoException | null, stats: Stats) => void) => {
-    const newPath = posix.normalize(posix.join(workspace.uri.path, path));
+    const newPath = posix.normalize(posix.join(workspace.path, path));
     try {
-      const stat = await vscode.workspace.fs.stat(workspace.uri.with({path: newPath}));
+      const stat = await fs.stat(workspace.with({path: newPath}));
       callback(null, MapState(stat));
     } catch(err: any) {
       callback(err, NullStat())
     }
   }
   const readdir: ReaddirAsynchronousMethod = async (filepath: string, callbackOrOptions: StatAsyncCallbackStrings| { withFileTypes: true; }, callback?: StatAsyncCallbackDirents) => {
-    const newPath = posix.normalize(posix.join(workspace.uri.path, filepath));
+    const newPath = posix.normalize(posix.join(workspace.path, filepath));
     try {
-      const dirEntries = await vscode.workspace.fs.readDirectory(workspace.uri.with({path: newPath}));
+      const dirEntries = await fs.readDirectory(workspace.with({path: newPath}));
       if(callbackOrOptions instanceof Function) {
         const callback = callbackOrOptions;
         const results = dirEntries.map( entry => {
@@ -133,24 +161,58 @@ const VsCodeAsyncFileSystem = (workspace: vscode.WorkspaceFolder): FastGlobFiles
       callback && callback(err, [])
     }
   }
+  const readFile = async (path: string): Promise<string|undefined> => {
+    try {
+      const data = await fs.readFile(uriFromPath(path))
+      return Buffer.from(data).toString('utf8');
+    } catch {
+
+    }
+  }
+  async function writeFile(path: string, contents: string|Uint8Array): Promise<void> {
+    try {
+      if(contents instanceof Uint8Array) {
+        await fs.writeFile(uriFromPath(path),contents);
+      } else {
+        await fs.writeFile(uriFromPath(path),Buffer.from(contents));
+      }
+    } catch {
+
+    }
+  }
+  const createDirectory = async (path: string): Promise<void> => {
+    try {
+      await fs.createDirectory(uriFromPath(path));
+    } catch {
+
+    }
+  }
   return {
-    stat,
-    lstat: stat,
-    readdir
+    workspace,
+    fs: {
+      stat,
+      lstat: stat,
+      readdir,
+      readFile,
+      writeFile,
+      createDirectory
+    },
+    uriFromPath
   }
 }
 
-export const fastGlob = (workspace: vscode.WorkspaceFolder) => {
-  const fs: Partial<FG.FileSystemAdapter> = VsCodeAsyncFileSystem(workspace);
+export const fastGlob = (shell: VSShellEnv): FastGlobEnvironment => {
+  const env: FastGlobEnvironmentBase|null = VsCodeAsyncFileSystem(shell);
+  if(!env) {
+    throw Error('Workspace Folder Failed to Load')
+  }
   return {
-    fasGlob: (source: string|string[], options:FG.Options = {}) => {
+    fastGlob: (source: string|string[], options:FG.Options = {}) => {
       return FG(source, {
         ... options,
-        fs
+        fs: env.fs
       })
     },
-    fs,
-    uriFromPath: (path: string) => workspace.uri.with({path: posix.normalize(posix.join(workspace.uri.path, path))}),
-    workspace
+    ... env
   }
 }

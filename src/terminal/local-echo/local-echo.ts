@@ -18,8 +18,8 @@ import {
   getSharedFragment
 } from "./Utils";
 
-
-export type AutoComplete = (index: number, args: string[], ... argv: any[])=>any;
+export type AutoCompleteResponse = {value: string, isPartial?: boolean};
+export type AutoComplete = (index: number, args: string[], ... argv: any[])=>Promise<AutoCompleteResponse[]|null>;
 export interface AutoCompleteEntry{
   fn: AutoComplete;
   args: any[]
@@ -500,7 +500,7 @@ handleTermResize(size: TerminalDimensions) {
   /**
    * Handle a single piece of information from the terminal.
    */
-  handleData(data: string) {
+  async handleData(data: string) {
     if (!this._active) return;
     const ord = data.charCodeAt(0);
     let ofs;
@@ -587,7 +587,7 @@ handleTermResize(size: TerminalDimensions) {
           if (this._autocompleteHandlers.length > 0) {
             const inputFragment = this._input.substr(0, this._cursor);
             const hasTailingSpace = hasTailingWhitespace(inputFragment);
-            const candidates = collectAutocompleteCandidates(
+            const candidates = await collectAutocompleteCandidates(
               this._autocompleteHandlers,
               inputFragment
             );
@@ -606,12 +606,12 @@ handleTermResize(size: TerminalDimensions) {
               // Just a single candidate? Complete
               const lastToken = getLastToken( inputFragment);
               this.handleCursorInsert(
-                candidates[0].substr(lastToken.length) + " "
+                candidates[0].value.substr(lastToken.length) + (candidates[0].isPartial?'':" ")
               );
             } else if (candidates.length <= this.maxAutocompleteEntries) {
 
               // search for a shared fragement
-              const sameFragment = getSharedFragment(inputFragment, candidates);
+              const sameFragment = getSharedFragment(getLastToken(inputFragment), candidates.map(response => response.value));
               
               // if there's a shared fragement between the candidates
               // print complete the shared fragment
@@ -625,7 +625,7 @@ handleTermResize(size: TerminalDimensions) {
               // If we are less than maximum auto-complete candidates, print
               // them to the user and re-start prompt
               this.printAndRestartPrompt(() => {
-                this.printWide(candidates);
+                this.printWide(candidates.map(response => response.value));
               });
             } else {
               // If we have more than maximum auto-complete candidates, print
@@ -635,7 +635,7 @@ handleTermResize(size: TerminalDimensions) {
                   `Display all ${candidates.length} possibilities? (y or n)`
                 ).then(yn => {
                   if (yn == "y" || yn == "Y") {
-                    this.printWide(candidates);
+                    this.printWide(candidates.map(response => response.value));
                   }
                 })
               );
