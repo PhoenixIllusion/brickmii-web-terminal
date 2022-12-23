@@ -17,8 +17,9 @@ export interface ExtensionShellInterface {
 }
 
 export interface VSShellEnv extends ShellEnv {
- getWorkspaceFolder(): like.Uri|null;
+ getWorkspaceFolder(): like.Uri|null,
  getFs(): like.FileSystem
+ getFsFromCwd(): like.FileSystemLike<string>
 }
 
 export const NullShellEnv = {

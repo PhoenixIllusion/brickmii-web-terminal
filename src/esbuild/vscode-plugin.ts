@@ -1,6 +1,5 @@
 import esbuild from 'esbuild-wasm';
 import path,{posix} from 'path';
-import { VSShellEnv } from '../terminal/ext';
 import { FastGlobEnvironment } from '../terminal/filesystem/fast-glob';
 
 export class VsCodePlugin  {

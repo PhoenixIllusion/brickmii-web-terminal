@@ -37,7 +37,11 @@ const FakeFS: like.FileSystem = {
 const env: VSShellEnv = {
   ... NullShellEnv,
   getWorkspaceFolder: () => workspaceUri,
-  getFs: () => FakeFS
+  getFs: () => FakeFS,
+  getFsFromCwd: () => like.WrapFromCWD({
+    withWorkspace: () => workspaceUri,
+    withCWD: () => ''
+  }, FakeFS)
 }
 
 async function run() {

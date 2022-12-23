@@ -39,7 +39,7 @@ export const performEsBuild = async (env: VSShellEnv, flags: ParsedArgs|undefine
     env.onError(new Error("Error: Unable to activate Glob FS"));
     return;
   }
-  const options = await validateESBuildArgs(glob, flags);
+  const options = await validateESBuildArgs(env, flags);
   if(!options) {
     env.onError(new Error("Error: Invalid Options given for ESBuild"));
     return;
@@ -64,7 +64,7 @@ export const compileEsBuild = async (glob: FastGlobEnvironment, options: esbuild
   return outputFiles;
 }
 
-export const validateESBuildArgs = async (glob: FastGlobEnvironment, flags?: ParsedArgs): Promise<esbuild.BuildOptions|undefined> => {
+export const validateESBuildArgs = async (env: VSShellEnv, flags?: ParsedArgs): Promise<esbuild.BuildOptions|undefined> => {
   let options: esbuild.BuildOptions = {};
   if(flags) {
     Object.assign(options, flags);
@@ -86,7 +86,7 @@ export const validateESBuildArgs = async (glob: FastGlobEnvironment, flags?: Par
     }
     delete flags['config']
   }
-  const config = await glob.fs.readFile(configFile);
+  const config = await env.getFsFromCwd().readFile(configFile);
   if(config) {
     options = Object.assign(config, options);
   }

@@ -18,7 +18,7 @@ import {
   getSharedFragment
 } from "./Utils";
 
-export type AutoCompleteResponse = {value: string, isPartial?: boolean};
+export type AutoCompleteResponse = {value: string, isPartial?: boolean, hint?: string};
 export type AutoComplete = (index: number, args: string[], ... argv: any[])=>Promise<AutoCompleteResponse[]|null>;
 export interface AutoCompleteEntry{
   fn: AutoComplete;
@@ -625,7 +625,7 @@ handleTermResize(size: TerminalDimensions) {
               // If we are less than maximum auto-complete candidates, print
               // them to the user and re-start prompt
               this.printAndRestartPrompt(() => {
-                this.printWide(candidates.map(response => response.value));
+                this.printWide(candidates.map(response => response.hint || response.value));
               });
             } else {
               // If we have more than maximum auto-complete candidates, print
@@ -635,7 +635,7 @@ handleTermResize(size: TerminalDimensions) {
                   `Display all ${candidates.length} possibilities? (y or n)`
                 ).then(yn => {
                   if (yn == "y" || yn == "Y") {
-                    this.printWide(candidates.map(response => response.value));
+                    this.printWide(candidates.map(response => response.hint || response.value));
                   }
                 })
               );
